@@ -1,0 +1,60 @@
+from confluent_kafka import avro
+from confluent_kafka.avro import AvroProducer
+
+
+value_schema_str = """
+{
+   "namespace": "formation.kafka",
+   "name": "value",
+   "type": "record",
+   "fields" : [
+     {
+       "name" : "name",
+       "type" : "string"
+     }
+   ]
+}
+"""
+
+key_schema_str = """
+{
+   "namespace": "formation.kafka",
+   "name": "key",
+   "type": "record",
+   "fields" : [
+     {
+       "name" : "name",
+       "type" : "string"
+     }
+   ]
+}
+"""
+
+value_schema = avro.loads(value_schema_str)
+key_schema = avro.loads(key_schema_str)
+value = {"name": "Matthieu Guillemette"}
+key = {"name": "3894H"}
+
+
+def delivery_report(err, msg):
+    """ Called once for each message produced to indicate delivery result.
+        Triggered by poll() or flush(). """
+    if err is not None:
+        print('Message delivery failed: {}'.format(err))
+    else:
+        print('Message delivered to {} [{}]'.format(msg.topic(), msg.partition()))
+
+
+broker = "localhost:9093"
+topic =  'vehicle-positions-avro'
+registry_url = 'http://localhost:8081'
+
+
+avroProducer = AvroProducer({
+    'bootstrap.servers': broker,
+    'on_delivery': delivery_report,
+    'schema.registry.url': registry_url
+    }, default_key_schema=key_schema, default_value_schema=value_schema)
+
+avroProducer.produce(topic=topic, value=value, key=key)
+avroProducer.flush()
